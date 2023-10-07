@@ -1,0 +1,49 @@
+services:
+  axum:
+    build: ./axum-template
+    container_name: api
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    environment:
+      - OTEL_SERVICE_NAME=api
+      - OTEL_TRACES_SAMPLER=always_on
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grcp
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://jaeger:4317
+    networks:
+      - backend
+  jaeger:
+    container_name: 'jaeger'
+    image: jaegertracing/all-in-one:latest
+    expose:
+      - "4318"
+      - "4317"
+    ports:
+      - "16686:16686"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - backend
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    volumes:
+       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+       - "9090:9090"
+    expose: 
+       - "9090"
+    networks:
+      - backend
+  autometrics:
+    container_name: autometrics
+    image: autometrics/am-proxy:latest
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+    ports:
+      - "6789:6789"
+    networks:
+      - backend
+networks:
+  backend:
